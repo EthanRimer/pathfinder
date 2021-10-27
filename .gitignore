@@ -2,3 +2,4 @@
 *.sum
 main
 test.go
+*.csv

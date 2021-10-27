@@ -1,21 +1,30 @@
 package main
 
 import (
+    "encoding/csv"
 	"fmt"
-	"golang.org/x/net/html"
-    "log"
+	"log"
 	"net/http"
 	"net/url"
-    "strings"
-    "time"
+	"os"
+	"strings"
+	"time"
+
+	"golang.org/x/net/html"
 )
 
 var rootPage string = "https://www.peanuts.com"
 var visitedLinks map[string]bool = make(map[string]bool)
 var unvisitedLinks map[string]bool = make(map[string]bool)
 var linkQueue []string
+var hierarchy map[string][]string = make(map[string][]string)
+var children []string
 
 func main() {
+
+    linksFile, err := os.Create("links.csv")
+    checkError(err)
+    defer linksFile.Close()
 
     resp, err := http.Get(rootPage)
     checkError(err)
@@ -26,6 +35,8 @@ func main() {
     doc, err := html.Parse(resp.Body)
     checkError(err)
 
+    csvWriter := csv.NewWriter(linksFile)
+    csvWriter.Write([]string{"link", "children"})
     findLinks(rootPage, doc)
     for !isEmpty() {
 
@@ -45,13 +56,32 @@ func main() {
         doc, err := html.Parse(resp.Body)
         checkError(err)
 
+        children = make([]string, 0)
         findLinks(link, doc)
+        hierarchy[link] = children
     }
 
-    fmt.Printf("\n\nFound %v unique links\n", len(visitedLinks))
+    fmt.Printf("\n\nFound %d unique links\n\n", len(visitedLinks))
+
+    for link, children := range hierarchy {
+
+        csvWriter.Write([]string{link, strings.Join(children, " ")})
+        /*
+        fmt.Print("\n" + link + ": ")
+        for child := range children {
+
+            fmt.Printf("%v ", children[child])
+        }
+
+        fmt.Print("\n\n")
+        */
+    }
+
+    csvWriter.Flush()
 }
 
 func findLinks(rootLink string, n *html.Node) {
+
     if n.Type == html.ElementNode && n.Data == "a" {
         for _, a := range n.Attr {
             if a.Key == "href" {
@@ -69,6 +99,7 @@ func findLinks(rootLink string, n *html.Node) {
 
                     add(unvisitedLinks, link)
                     enqueue(link)
+                    children = append(children, link)
 
                     log.Println("Found page: " + link)
                 } 
@@ -148,6 +179,7 @@ func has(links map[string]bool, str string) bool {
 }
 
 func setIsEmpty(links map[string]bool) bool {
+
     return len(links) == 0
 }
 
@@ -166,16 +198,19 @@ func dequeue() string {
 }
 
 func front() string {
+
     return linkQueue[0]
 }
 
 func isEmpty() bool {
+
     return len(linkQueue) == 0
 }
 
 func isInQueue(link string) bool {
     for _, s := range linkQueue {
         if s == link {
+
             return true
         }
     }

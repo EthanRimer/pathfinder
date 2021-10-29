@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
+	//"time"
 
 	"golang.org/x/net/html"
 )
@@ -16,7 +16,6 @@ import (
 var rootPage string = "https://www.peanuts.com"
 var visitedLinks map[string]bool = make(map[string]bool)
 var unvisitedLinks map[string]bool = make(map[string]bool)
-var linkQueue []string
 var hierarchy map[string][]string = make(map[string][]string)
 var children []string
 
@@ -38,6 +37,7 @@ func main() {
     csvWriter := csv.NewWriter(linksFile)
     csvWriter.Write([]string{"link", "children"})
     findLinks(rootPage, doc)
+    /*
     for !isEmpty() {
 
         var link string = dequeue()
@@ -56,9 +56,33 @@ func main() {
         doc, err := html.Parse(resp.Body)
         checkError(err)
 
-        children = make([]string, 0)
+        //children = make([]string, 0)
         findLinks(link, doc)
-        hierarchy[link] = children
+        //hierarchy[link] = children
+    }
+    */
+
+    for !setIsEmpty(unvisitedLinks) {
+        for link := range unvisitedLinks {
+            if has(visitedLinks, link) {
+                remove(unvisitedLinks, link)
+                continue
+            }
+
+            //time.Sleep(time.Second)
+            resp, err := http.Get(link)
+            checkError(err)
+
+            log.Printf("Visited page: %v", link)
+            add(visitedLinks, link)
+
+            doc, err := html.Parse(resp.Body)
+            checkError(err)
+
+            children = make([]string, 0)
+            findLinks(link, doc)
+            hierarchy[link] = children
+        }
     }
 
     fmt.Printf("\n\nFound %d unique links\n\n", len(visitedLinks))
@@ -66,15 +90,6 @@ func main() {
     for link, children := range hierarchy {
 
         csvWriter.Write([]string{link, strings.Join(children, " ")})
-        /*
-        fmt.Print("\n" + link + ": ")
-        for child := range children {
-
-            fmt.Printf("%v ", children[child])
-        }
-
-        fmt.Print("\n\n")
-        */
     }
 
     csvWriter.Flush()
@@ -98,7 +113,6 @@ func findLinks(rootLink string, n *html.Node) {
                     }
 
                     add(unvisitedLinks, link)
-                    enqueue(link)
                     children = append(children, link)
 
                     log.Println("Found page: " + link)
@@ -181,40 +195,5 @@ func has(links map[string]bool, str string) bool {
 func setIsEmpty(links map[string]bool) bool {
 
     return len(links) == 0
-}
-
-// *** QUEUE FUNCTIONS ***
-func enqueue(s string) {
-
-    linkQueue = append(linkQueue, s)
-}
-
-func dequeue() string {
-
-    var s string = linkQueue[0]
-    linkQueue = linkQueue[1:]
-
-    return s
-}
-
-func front() string {
-
-    return linkQueue[0]
-}
-
-func isEmpty() bool {
-
-    return len(linkQueue) == 0
-}
-
-func isInQueue(link string) bool {
-    for _, s := range linkQueue {
-        if s == link {
-
-            return true
-        }
-    }
-
-    return false
 }
 

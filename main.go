@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	//"time"
+	"time"
 
 	"golang.org/x/net/html"
 )
@@ -37,30 +37,6 @@ func main() {
     csvWriter := csv.NewWriter(linksFile)
     csvWriter.Write([]string{"link", "children"})
     findLinks(rootPage, doc)
-    /*
-    for !isEmpty() {
-
-        var link string = dequeue()
-        if _, present := visitedLinks[link]; present {
-
-            continue
-        }
-
-        time.Sleep(time.Second)
-        resp, err := http.Get(link)
-        checkError(err)
-
-        log.Println("Visited page: " + link)
-        add(visitedLinks, link)
-
-        doc, err := html.Parse(resp.Body)
-        checkError(err)
-
-        //children = make([]string, 0)
-        findLinks(link, doc)
-        //hierarchy[link] = children
-    }
-    */
 
     for !setIsEmpty(unvisitedLinks) {
         for link := range unvisitedLinks {
@@ -69,7 +45,7 @@ func main() {
                 continue
             }
 
-            //time.Sleep(time.Second)
+            time.Sleep(time.Second)
             resp, err := http.Get(link)
             checkError(err)
 

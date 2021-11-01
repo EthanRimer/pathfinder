@@ -130,7 +130,7 @@ func validLink(link string) bool {
     u, err := url.Parse(link)
     checkError(err)
 
-    if u.Fragment != "" || len(u.Query()) != 0 {
+    if u.Fragment != "" {
         
         return false
     }

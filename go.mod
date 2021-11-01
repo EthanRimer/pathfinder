@@ -1,5 +1,5 @@
-module pathfinder/main
+module pathfinder
 
 go 1.13
 
-require golang.org/x/net v0.0.0-20211020060615-d418f374d309 // indirect
+require golang.org/x/net v0.0.0-20211029160332-540bb53d3b2e

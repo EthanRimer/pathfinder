@@ -1,29 +1,29 @@
 package main
 
 import (
-    "encoding/csv"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
-    "strings"
+	"strings"
 	"time"
 
 	"golang.org/x/net/html"
 )
 
+type page struct {
+    title    string
+    link     string
+    children []string
+}
+
+var currentPage page
 var rootPage string = "https://www.peanuts.com"
 var visitedLinks map[string]bool = make(map[string]bool)
 var unvisitedLinks map[string]bool = make(map[string]bool)
-var hierarchy map[string][]string = make(map[string][]string)
-var children []string
+var hierarchy map[string]page
 
 func main() {
-
-    linksFile, err := os.Create("links.csv")
-    checkError(err)
-    defer linksFile.Close()
 
     resp, err := http.Get(rootPage)
     checkError(err)
@@ -34,16 +34,18 @@ func main() {
     doc, err := html.Parse(resp.Body)
     checkError(err)
 
-    csvWriter := csv.NewWriter(linksFile)
-    csvWriter.Write([]string{"link", "children"})
     findLinks(rootPage, doc)
 
     for !setIsEmpty(unvisitedLinks) {
         for link := range unvisitedLinks {
             if has(visitedLinks, link) {
+
                 remove(unvisitedLinks, link)
+
                 continue
             }
+
+            currentPage.link = link
 
             time.Sleep(time.Second)
             resp, err := http.Get(link)
@@ -55,20 +57,35 @@ func main() {
             doc, err := html.Parse(resp.Body)
             checkError(err)
 
-            children = make([]string, 0)
+            if title, present := getPageTitle(doc); present {
+
+                currentPage.title = title
+            }
+
             findLinks(link, doc)
-            hierarchy[link] = children
+
+            hierarchy[currentPage.title] = currentPage
+
+            currentPage = *new(page)
         }
     }
 
     fmt.Printf("\n\nFound %d unique links\n\n", len(visitedLinks))
 
-    for link, children := range hierarchy {
+    for title, webpage := range hierarchy {
 
-        csvWriter.Write([]string{link, strings.Join(children, " ")})
+        fmt.Printf("Page Title: %v\nPage Link: %v", title, webpage.link)
+        if len(webpage.children) != 0 {
+            fmt.Println("Children:")
+            for link := range webpage.children {
+
+                fmt.Printf("%v\n", link)
+            }
+
+            fmt.Println()
+        }
     }
 
-    csvWriter.Flush()
 }
 
 func findLinks(rootLink string, n *html.Node) {
@@ -89,7 +106,7 @@ func findLinks(rootLink string, n *html.Node) {
                     }
 
                     add(unvisitedLinks, link)
-                    children = append(children, link)
+                    currentPage.children = append(currentPage.children, link)
 
                     log.Println("Found page: " + link)
                 } 
@@ -103,6 +120,22 @@ func findLinks(rootLink string, n *html.Node) {
 
         findLinks(rootLink, c)
     }
+}
+
+func getPageTitle(n *html.Node) (string, bool) {
+    if n.Type == html.ElementNode && n.Data == "title" {
+
+        return n.Data, true
+    }
+
+    for c := n.FirstChild; c != nil; c = c.NextSibling {
+        if title, present := getPageTitle(c); present {
+            
+            return title, present
+        }
+    }
+
+    return "", false
 }
 
 

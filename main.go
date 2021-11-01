@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
+	//"time"
 
 	"golang.org/x/net/html"
 )
@@ -17,11 +17,11 @@ type page struct {
     children []string
 }
 
-var currentPage page
+var currentPage page = *new(page)
 var rootPage string = "https://www.peanuts.com"
 var visitedLinks map[string]bool = make(map[string]bool)
 var unvisitedLinks map[string]bool = make(map[string]bool)
-var hierarchy map[string]page
+var hierarchy map[string]page = make(map[string]page)
 
 func main() {
 
@@ -34,7 +34,14 @@ func main() {
     doc, err := html.Parse(resp.Body)
     checkError(err)
 
+    if title, present := getPageTitle(doc); present {
+
+        currentPage.title = title
+    }
     findLinks(rootPage, doc)
+
+    hierarchy[currentPage.title] = currentPage
+    currentPage = *new(page)
 
     for !setIsEmpty(unvisitedLinks) {
         for link := range unvisitedLinks {
@@ -47,7 +54,7 @@ func main() {
 
             currentPage.link = link
 
-            time.Sleep(time.Second)
+            //time.Sleep(time.Second)
             resp, err := http.Get(link)
             checkError(err)
 
@@ -60,6 +67,9 @@ func main() {
             if title, present := getPageTitle(doc); present {
 
                 currentPage.title = title
+            } else {
+
+                currentPage.title = link
             }
 
             findLinks(link, doc)
@@ -76,16 +86,15 @@ func main() {
 
         fmt.Printf("Page Title: %v\nPage Link: %v", title, webpage.link)
         if len(webpage.children) != 0 {
-            fmt.Println("Children:")
+            fmt.Println("\nChildren:")
             for link := range webpage.children {
 
-                fmt.Printf("%v\n", link)
+                fmt.Println(link)
             }
-
-            fmt.Println()
         }
-    }
 
+        fmt.Println("\n")
+    }
 }
 
 func findLinks(rootLink string, n *html.Node) {
@@ -125,7 +134,7 @@ func findLinks(rootLink string, n *html.Node) {
 func getPageTitle(n *html.Node) (string, bool) {
     if n.Type == html.ElementNode && n.Data == "title" {
 
-        return n.Data, true
+        return n.FirstChild.Data, true
     }
 
     for c := n.FirstChild; c != nil; c = c.NextSibling {

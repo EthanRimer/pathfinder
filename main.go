@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"os"
     "strings"
-	//"time"
+	"time"
 
 	"golang.org/x/net/html"
 )
@@ -30,7 +30,6 @@ func main() {
 
     log.Println("Visited page: " + rootPage)
     add(visitedLinks, rootPage)
-    //visitedLinks.Add(rootPage)
 
     doc, err := html.Parse(resp.Body)
     checkError(err)
@@ -46,7 +45,7 @@ func main() {
                 continue
             }
 
-            //time.Sleep(time.Second)
+            time.Sleep(time.Second)
             resp, err := http.Get(link)
             checkError(err)
 

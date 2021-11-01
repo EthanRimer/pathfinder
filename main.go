@@ -1,13 +1,13 @@
 package main
 
 import (
-    "encoding/csv"
+	"encoding/csv"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-    "strings"
+	"strings"
 	"time"
 
 	"golang.org/x/net/html"

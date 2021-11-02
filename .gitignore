@@ -2,6 +2,4 @@
 *.sum
 main
 test.go
-*.csv
-links.txt
 links.*

@@ -117,8 +117,8 @@ func main() {
         fmt.Println(link)
     }
     */
-    t := template.Must(template.New("derp").ParseFiles("templ.html"))
-    t.Execute(os.Stdout, Hierarchy)
+    t, err := template.ParseFiles("templ.html")
+    t.Execute(linksFile, Hierarchy)
 }
 
 func findLinks(rootLink string, n *html.Node) {

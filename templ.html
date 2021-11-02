@@ -7,8 +7,8 @@
     <body>
         <h1>Peanuts.com Hierarchy</h1>
         <ul>
-            {{ range $title, $page := . }}
-            <li><a href="{{ $page.Link }}">{{ $title }}</a></li>
+            {{ range $link, $page := .Pages }}
+            <li><a href="{{ $link }}">{{ $page.Title }}</a></li>
             {{ end }}
         </ul>
     </body>

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	//"sort"
+	"sort"
 	"strings"
 	//"time"
 
@@ -20,13 +20,19 @@ type page struct {
     Children []string
 }
 
+type Hierarchy struct {
+    Links []string
+    Pages map[string]page
+}
+
 var currentPage page = *new(page)
 var rootPage string = "https://www.peanuts.com"
 var visitedLinks map[string]bool = make(map[string]bool)
 var unvisitedLinks map[string]bool = make(map[string]bool)
-var Hierarchy map[string]page = make(map[string]page)
+//var Hierarchy map[string]page = make(map[string]page)
 
 func main() {
+    pageMap := make(map[string]page)
 
     linksFile, err := os.Create("links.html")
     checkError(err)
@@ -48,7 +54,8 @@ func main() {
     }
     findLinks(rootPage, doc)
 
-    Hierarchy[currentPage.Title] = currentPage
+    //Hierarchy[currentPage.Link] = currentPage
+    pageMap[currentPage.Link] = currentPage
     currentPage = *new(page)
 
     for !setIsEmpty(unvisitedLinks) {
@@ -73,9 +80,8 @@ func main() {
             checkError(err)
 
             title, pageHasTitle := getPageTitle(doc)
-            _, present := Hierarchy[title]
             
-            if pageHasTitle && !present {
+            if pageHasTitle {
 
                 currentPage.Title = title
             } else {
@@ -85,7 +91,8 @@ func main() {
 
             findLinks(link, doc)
 
-            Hierarchy[currentPage.Title] = currentPage
+            //Hierarchy[currentPage.Link] = currentPage
+            pageMap[currentPage.Link] = currentPage
 
             currentPage = *new(page)
         }
@@ -93,32 +100,16 @@ func main() {
 
     fmt.Printf("\n\nFound %d unique links\n\n", len(visitedLinks))
 
-    /*
-    for title, webpage := range hierarchy {
-
-        fmt.Printf("Page Title: %v\nPage Link: %v", title, webpage.link)
-        if len(webpage.children) != 0 {
-            fmt.Println("\nChildren:")
-            for _, link := range webpage.children {
-
-                fmt.Println(link)
-            }
-        }
-
-        fmt.Println("\n")
-    }
-    links := make([]string, 0, len(hierarchy))
-    for link := range hierarchy {
-        links = append(links, hierarchy[link].link)
+    links := make([]string, 0, len(pageMap))
+    for link := range pageMap {
+        links = append(links, pageMap[link].Link)
     }
 
     sort.Strings(links)
-    for _, link := range links {
-        fmt.Println(link)
-    }
-    */
+    h := Hierarchy{Links: links, Pages: pageMap}
+
     t, err := template.ParseFiles("templ.html")
-    t.Execute(linksFile, Hierarchy)
+    t.Execute(linksFile, h)
 }
 
 func findLinks(rootLink string, n *html.Node) {

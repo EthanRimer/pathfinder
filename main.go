@@ -2,34 +2,41 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	//"sort"
 	"strings"
-	"time"
+	//"time"
 
 	"golang.org/x/net/html"
 )
 
 type page struct {
-    title    string
-    link     string
-    children []string
+    Title    string
+    Link     string
+    Children []string
 }
 
 var currentPage page = *new(page)
 var rootPage string = "https://www.peanuts.com"
 var visitedLinks map[string]bool = make(map[string]bool)
 var unvisitedLinks map[string]bool = make(map[string]bool)
-var hierarchy map[string]page = make(map[string]page)
+var Hierarchy map[string]page = make(map[string]page)
 
 func main() {
+
+    linksFile, err := os.Create("links.html")
+    checkError(err)
+    defer linksFile.Close()
 
     resp, err := http.Get(rootPage)
     checkError(err)
 
     log.Println("Visited page: " + rootPage)
-    currentPage.link = rootPage
+    currentPage.Link = rootPage
     add(visitedLinks, rootPage)
 
     doc, err := html.Parse(resp.Body)
@@ -37,11 +44,11 @@ func main() {
 
     if title, present := getPageTitle(doc); present {
 
-        currentPage.title = title
+        currentPage.Title = title
     }
     findLinks(rootPage, doc)
 
-    hierarchy[currentPage.title] = currentPage
+    Hierarchy[currentPage.Title] = currentPage
     currentPage = *new(page)
 
     for !setIsEmpty(unvisitedLinks) {
@@ -53,9 +60,9 @@ func main() {
                 continue
             }
 
-            currentPage.link = link
+            currentPage.Link = link
 
-            time.Sleep(time.Second)
+            //time.Sleep(time.Second)
             resp, err := http.Get(link)
             checkError(err)
 
@@ -66,19 +73,19 @@ func main() {
             checkError(err)
 
             title, pageHasTitle := getPageTitle(doc)
-            _, present := hierarchy[title]
+            _, present := Hierarchy[title]
             
             if pageHasTitle && !present {
 
-                currentPage.title = title
+                currentPage.Title = title
             } else {
 
-                currentPage.title = link
+                currentPage.Title = link
             }
 
             findLinks(link, doc)
 
-            hierarchy[currentPage.title] = currentPage
+            Hierarchy[currentPage.Title] = currentPage
 
             currentPage = *new(page)
         }
@@ -86,6 +93,7 @@ func main() {
 
     fmt.Printf("\n\nFound %d unique links\n\n", len(visitedLinks))
 
+    /*
     for title, webpage := range hierarchy {
 
         fmt.Printf("Page Title: %v\nPage Link: %v", title, webpage.link)
@@ -99,6 +107,18 @@ func main() {
 
         fmt.Println("\n")
     }
+    links := make([]string, 0, len(hierarchy))
+    for link := range hierarchy {
+        links = append(links, hierarchy[link].link)
+    }
+
+    sort.Strings(links)
+    for _, link := range links {
+        fmt.Println(link)
+    }
+    */
+    t := template.Must(template.New("derp").ParseFiles("templ.html"))
+    t.Execute(os.Stdout, Hierarchy)
 }
 
 func findLinks(rootLink string, n *html.Node) {
@@ -119,7 +139,7 @@ func findLinks(rootLink string, n *html.Node) {
                     }
 
                     add(unvisitedLinks, link)
-                    currentPage.children = append(currentPage.children, link)
+                    currentPage.Children = append(currentPage.Children, link)
 
                     log.Println("Found page: " + link)
                 } 

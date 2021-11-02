@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	//"time"
+	"time"
 
 	"golang.org/x/net/html"
 )
@@ -29,6 +29,7 @@ func main() {
     checkError(err)
 
     log.Println("Visited page: " + rootPage)
+    currentPage.link = rootPage
     add(visitedLinks, rootPage)
 
     doc, err := html.Parse(resp.Body)
@@ -54,7 +55,7 @@ func main() {
 
             currentPage.link = link
 
-            //time.Sleep(time.Second)
+            time.Sleep(time.Second)
             resp, err := http.Get(link)
             checkError(err)
 
@@ -64,7 +65,10 @@ func main() {
             doc, err := html.Parse(resp.Body)
             checkError(err)
 
-            if title, present := getPageTitle(doc); present {
+            title, pageHasTitle := getPageTitle(doc)
+            _, present := hierarchy[title]
+            
+            if pageHasTitle && !present {
 
                 currentPage.title = title
             } else {
@@ -87,7 +91,7 @@ func main() {
         fmt.Printf("Page Title: %v\nPage Link: %v", title, webpage.link)
         if len(webpage.children) != 0 {
             fmt.Println("\nChildren:")
-            for link := range webpage.children {
+            for _, link := range webpage.children {
 
                 fmt.Println(link)
             }
@@ -172,7 +176,7 @@ func validLink(link string) bool {
     u, err := url.Parse(link)
     checkError(err)
 
-    if u.Fragment != "" || len(u.Query()) != 0 {
+    if u.Fragment != "" {
         
         return false
     }

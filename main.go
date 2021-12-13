@@ -9,7 +9,7 @@ import (
 	"os"
 	"sort"
 	"strings"
-	//"time"
+	"time"
 
 	"golang.org/x/net/html"
 )
@@ -69,7 +69,7 @@ func main() {
 
             currentPage.Link = link
 
-            //time.Sleep(time.Second)
+            time.Sleep(time.Second)
             resp, err := http.Get(link)
             checkError(err)
 

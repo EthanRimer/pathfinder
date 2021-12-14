@@ -1,20 +1,13 @@
 package main
 
 import (
-<<<<<<< HEAD
-	"encoding/csv"
-=======
->>>>>>> link_struct
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-<<<<<<< HEAD
-=======
-	"sort"
->>>>>>> link_struct
+    "sort"
 	"strings"
 	"time"
 

@@ -1,27 +1,47 @@
 package main
 
 import (
+<<<<<<< HEAD
 	"encoding/csv"
+=======
+>>>>>>> link_struct
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+<<<<<<< HEAD
+=======
+	"sort"
+>>>>>>> link_struct
 	"strings"
 	"time"
 
 	"golang.org/x/net/html"
 )
 
+type page struct {
+    Title    string
+    Link     string
+    Children []string
+}
+
+type Hierarchy struct {
+    Links []string
+    Pages map[string]page
+}
+
+var currentPage page = *new(page)
 var rootPage string = "https://www.peanuts.com"
 var visitedLinks map[string]bool = make(map[string]bool)
 var unvisitedLinks map[string]bool = make(map[string]bool)
-var hierarchy map[string][]string = make(map[string][]string)
-var children []string
+//var Hierarchy map[string]page = make(map[string]page)
 
 func main() {
+    pageMap := make(map[string]page)
 
-    linksFile, err := os.Create("links.csv")
+    linksFile, err := os.Create("links.html")
     checkError(err)
     defer linksFile.Close()
 
@@ -29,21 +49,32 @@ func main() {
     checkError(err)
 
     log.Println("Visited page: " + rootPage)
+    currentPage.Link = rootPage
     add(visitedLinks, rootPage)
 
     doc, err := html.Parse(resp.Body)
     checkError(err)
 
-    csvWriter := csv.NewWriter(linksFile)
-    csvWriter.Write([]string{"link", "children"})
+    if title, present := getPageTitle(doc); present {
+
+        currentPage.Title = title
+    }
     findLinks(rootPage, doc)
+
+    //Hierarchy[currentPage.Link] = currentPage
+    pageMap[currentPage.Link] = currentPage
+    currentPage = *new(page)
 
     for !setIsEmpty(unvisitedLinks) {
         for link := range unvisitedLinks {
             if has(visitedLinks, link) {
+
                 remove(unvisitedLinks, link)
+
                 continue
             }
+
+            currentPage.Link = link
 
             time.Sleep(time.Second)
             resp, err := http.Get(link)
@@ -55,20 +86,37 @@ func main() {
             doc, err := html.Parse(resp.Body)
             checkError(err)
 
-            children = make([]string, 0)
+            title, pageHasTitle := getPageTitle(doc)
+            
+            if pageHasTitle {
+
+                currentPage.Title = title
+            } else {
+
+                currentPage.Title = link
+            }
+
             findLinks(link, doc)
-            hierarchy[link] = children
+
+            //Hierarchy[currentPage.Link] = currentPage
+            pageMap[currentPage.Link] = currentPage
+
+            currentPage = *new(page)
         }
     }
 
     fmt.Printf("\n\nFound %d unique links\n\n", len(visitedLinks))
 
-    for link, children := range hierarchy {
-
-        csvWriter.Write([]string{link, strings.Join(children, " ")})
+    links := make([]string, 0, len(pageMap))
+    for link := range pageMap {
+        links = append(links, pageMap[link].Link)
     }
 
-    csvWriter.Flush()
+    sort.Strings(links)
+    h := Hierarchy{Links: links, Pages: pageMap}
+
+    t, err := template.ParseFiles("templ.html")
+    t.Execute(linksFile, h)
 }
 
 func findLinks(rootLink string, n *html.Node) {
@@ -89,7 +137,7 @@ func findLinks(rootLink string, n *html.Node) {
                     }
 
                     add(unvisitedLinks, link)
-                    children = append(children, link)
+                    currentPage.Children = append(currentPage.Children, link)
 
                     log.Println("Found page: " + link)
                 } 
@@ -103,6 +151,22 @@ func findLinks(rootLink string, n *html.Node) {
 
         findLinks(rootLink, c)
     }
+}
+
+func getPageTitle(n *html.Node) (string, bool) {
+    if n.Type == html.ElementNode && n.Data == "title" {
+
+        return n.FirstChild.Data, true
+    }
+
+    for c := n.FirstChild; c != nil; c = c.NextSibling {
+        if title, present := getPageTitle(c); present {
+            
+            return title, present
+        }
+    }
+
+    return "", false
 }
 
 

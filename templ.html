@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Peanuts.com Hierarchy</title>
+    </head>
+
+    <body>
+        <h1>Peanuts.com Hierarchy</h1>
+        <ul>
+            {{ range $link, $page := .Pages }}
+            <li><a href="{{ $link }}">{{ $page.Title }}</a></li>
+            {{ end }}
+        </ul>
+    </body>
+</html>
